@@ -1,0 +1,313 @@
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Stack;
+
+public class GestorTareas {
+   
+    private Queue<Tarea> colaEspera;
+    private Stack<Tarea> pilaPrioritaria;
+    private Map<String, String> mapaTrazabilidad;
+    private Stack<Tarea> pilaDeshacer; // Nueva pila para deshacer
+
+    public GestorTareas(){
+        colaEspera = new LinkedList<>();
+        pilaPrioritaria = new Stack<>();
+        mapaTrazabilidad = new HashMap<>();
+        pilaDeshacer = new Stack<>(); // Inicializar pila deshacer
+    }
+   
+    public void agregarTarea(Tarea tarea){
+        if(tarea.getPrioridad() == 3){
+            pilaPrioritaria.push(tarea);
+        } else {
+            colaEspera.offer(tarea);
+        }
+        System.out.println("Tarea agregada: " + tarea.getId());
+    }
+   
+    public Tarea procesarSiguienteTarea(){
+        Tarea tareaProcesada = null;
+       
+        if(!pilaPrioritaria.empty()){
+            tareaProcesada = pilaPrioritaria.pop();
+        }
+        else if(!colaEspera.isEmpty()){
+            tareaProcesada = colaEspera.poll();
+        }
+        else {
+            return null;
+        }
+       
+        long tiempoProcesamiento = System.currentTimeMillis();
+        String registro = "Completada - TiempoLlegada: " + tareaProcesada.getTiempoLlegada() +
+                         " - TiempoProcesamiento: " + tiempoProcesamiento;
+        mapaTrazabilidad.put(tareaProcesada.getId(), registro);
+        
+        // Guardar en pila de deshacer
+        pilaDeshacer.push(tareaProcesada);
+       
+        return tareaProcesada;
+    }
+    
+    // FUNCIÓN PARA DESHACER TAREA (ELIMINAR)
+    public Tarea deshacerTarea() {
+        Tarea tareaDeshecha = null;
+
+        if (!pilaDeshacer.isEmpty()) {
+            tareaDeshecha = pilaDeshacer.pop();
+            
+            // Remover del mapa de trazabilidad
+            mapaTrazabilidad.remove(tareaDeshecha.getId());
+            
+            // Reinsertar en la estructura original según prioridad
+            if (tareaDeshecha.getPrioridad() == 3) {
+                pilaPrioritaria.push(tareaDeshecha);
+            } else {
+                colaEspera.offer(tareaDeshecha);
+            }
+            
+            System.out.println("Tarea deshecha: " + tareaDeshecha.getId());
+        } else {
+            System.out.println("No hay tareas para deshacer.");
+        }
+
+        return tareaDeshecha;
+    }
+    
+    // FUNCIÓN PARA ELIMINAR TAREA POR ID
+    public boolean eliminarTarea(String idTarea) {
+        // Buscar y eliminar de pila prioritaria
+        Stack<Tarea> tempPila = new Stack<>();
+        boolean encontrada = false;
+        
+        while(!pilaPrioritaria.empty()){
+            Tarea tarea = pilaPrioritaria.pop();
+            if(tarea.getId().equals(idTarea)){
+                encontrada = true;
+                System.out.println("Tarea eliminada de Pila Prioritaria: " + idTarea);
+                break;
+            } else {
+                tempPila.push(tarea);
+            }
+        }
+        
+        // Restaurar pila
+        while(!tempPila.empty()){
+            pilaPrioritaria.push(tempPila.pop());
+        }
+        
+        // Si no se encontró en pila, buscar en cola
+        if(!encontrada){
+            Queue<Tarea> tempCola = new LinkedList<>();
+            
+            while(!colaEspera.isEmpty()){
+                Tarea tarea = colaEspera.poll();
+                if(tarea.getId().equals(idTarea)){
+                    encontrada = true;
+                    System.out.println("Tarea eliminada de Cola de Espera: " + idTarea);
+                    break;
+                } else {
+                    tempCola.offer(tarea);
+                }
+            }
+            
+            // Restaurar cola
+            while(!tempCola.isEmpty()){
+                colaEspera.offer(tempCola.poll());
+            }
+        }
+        
+        // También eliminar de pilaDeshacer si existe
+        Stack<Tarea> tempDeshacer = new Stack<>();
+        while(!pilaDeshacer.isEmpty()){
+            Tarea tarea = pilaDeshacer.pop();
+            if(!tarea.getId().equals(idTarea)){
+                tempDeshacer.push(tarea);
+            }
+        }
+        while(!tempDeshacer.isEmpty()){
+            pilaDeshacer.push(tempDeshacer.pop());
+        }
+        
+        // Eliminar de trazabilidad si existe
+        mapaTrazabilidad.remove(idTarea);
+        
+        if(!encontrada){
+            System.out.println("Tarea no encontrada: " + idTarea);
+        }
+        
+        return encontrada;
+    }
+   
+    public String consultarEstadoTarea(String idTarea){
+        if(mapaTrazabilidad.containsKey(idTarea)){
+            return "Completada";
+        }
+       
+        Stack<Tarea> tempPila = new Stack<>();
+        boolean enPila = false;
+       
+        while(!pilaPrioritaria.empty()){
+            Tarea tarea = pilaPrioritaria.pop();
+            tempPila.push(tarea);
+            if(tarea.getId().equals(idTarea)){
+                enPila = true;
+            }
+        }
+       
+        while(!tempPila.empty()){
+            pilaPrioritaria.push(tempPila.pop());
+        }
+       
+        if(enPila){
+            return "Pendiente en Pila Prioritaria";
+        }
+       
+        Queue<Tarea> tempCola = new LinkedList<>();
+        boolean enCola = false;
+       
+        while(!colaEspera.isEmpty()){
+            Tarea tarea = colaEspera.poll();
+            tempCola.offer(tarea);
+            if(tarea.getId().equals(idTarea)){
+                enCola = true;
+            }
+        }
+       
+        while(!tempCola.isEmpty()){
+            colaEspera.offer(tempCola.poll());
+        }
+       
+        if(enCola){
+            return "Pendiente en Cola de Espera";
+        }
+       
+        return "ID no encontrado";
+    }
+   
+    public void mostrarEstadoSistema(){
+        System.out.println("=== ESTADO DEL SISTEMA ===");
+        System.out.println("Tareas en Pila Prioritaria: " + pilaPrioritaria.size());
+        System.out.println("Tareas en Cola de Espera: " + colaEspera.size());
+        System.out.println("Tareas Completadas: " + mapaTrazabilidad.size());
+        System.out.println("Tareas en Historial Deshacer: " + pilaDeshacer.size());
+    }
+   
+    public void mostrarTrazabilidad(){
+        System.out.println("=== TRAZABILIDAD TAREAS COMPLETADAS ===");
+        for(Map.Entry<String, String> entry : mapaTrazabilidad.entrySet()){
+            System.out.println("ID: " + entry.getKey() + " -> " + entry.getValue());
+        }
+    }
+    
+    public void mostrarHistorialDeshacer(){
+        System.out.println("=== HISTORIAL DESHACER ===");
+        if(pilaDeshacer.isEmpty()){
+            System.out.println("No hay tareas en el historial de deshacer");
+            return;
+        }
+        
+        Stack<Tarea> temp = new Stack<>();
+        temp.addAll(pilaDeshacer);
+        
+        int contador = 1;
+        while(!temp.isEmpty()){
+            Tarea tarea = temp.pop();
+            System.out.println(contador + ". " + tarea.getId() + " - " + tarea.getDescripcion());
+            contador++;
+        }
+    }
+}
+en el main
+
+        System.out.println("\n7. ELIMINANDO TAREA T004");
+        gestor.eliminarTarea("T004");
+        
+        System.out.println("\n5. DESHACIENDO ULTIMA TAREA");
+        gestor.deshacerTarea();
+
+        agregar el metodo de deshacer 
+         public Tarea deshacerTarea() {
+        Tarea tareaDeshecha = null;
+
+        if (!pilaDeshacer.isEmpty()) {
+            tareaDeshecha = pilaDeshacer.pop();
+            
+            // Remover del mapa de trazabilidad
+            mapaTrazabilidad.remove(tareaDeshecha.getId());
+            
+            // Reinsertar en la estructura original según prioridad
+            if (tareaDeshecha.getPrioridad() == 3) {
+                pilaPrioritaria.push(tareaDeshecha);
+            } else {
+                colaEspera.offer(tareaDeshecha);
+            }
+            
+            System.out.println("Tarea deshecha: " + tareaDeshecha.getId());
+        } else {
+            System.out.println("No hay tareas para deshacer.");
+        }
+
+        return tareaDeshecha;
+    }
+
+    // modificar tarea 
+    public Tarea modificarTarea(String idTarea, String nuevaDescripcion, int nuevaPrioridad) {
+    // Verificar si la tarea ya fue completada
+    if (mapaTrazabilidad.containsKey(idTarea)) {
+        System.out.println("Error: No se puede modificar una tarea ya completada: " + idTarea);
+        return null;
+    }
+    
+    // Buscar en pila prioritaria
+    Stack<Tarea> tempPila = new Stack<>();
+    Tarea tareaModificada = null;
+    
+    while (!pilaPrioritaria.empty()) {
+        Tarea tarea = pilaPrioritaria.pop();
+        if (tarea.getId().equals(idTarea)) {
+            // Crear nueva tarea con los datos modificados
+            tareaModificada = new Tarea(idTarea, nuevaDescripcion, nuevaPrioridad, tarea.getTiempoLlegada());
+            tempPila.push(tareaModificada);
+        } else {
+            tempPila.push(tarea);
+        }
+    }
+    
+    // Reconstruir la pila
+    while (!tempPila.empty()) {
+        pilaPrioritaria.push(tempPila.pop());
+    }
+    
+    // Si no se encontró en la pila, buscar en la cola
+    if (tareaModificada == null) {
+        int size = colaEspera.size();
+        for (int i = 0; i < size; i++) {
+            Tarea tarea = colaEspera.poll();
+            if (tarea.getId().equals(idTarea)) {
+                tareaModificada = new Tarea(idTarea, nuevaDescripcion, nuevaPrioridad, tarea.getTiempoLlegada());
+                colaEspera.offer(tareaModificada);
+            } else {
+                colaEspera.offer(tarea);
+            }
+        }
+    }
+    
+    if (tareaModificada != null) {
+        System.out.println("Tarea modificada: " + tareaModificada);
+    } else {
+        System.out.println("Tarea no encontrada: " + idTarea);
+    }
+    
+    return tareaModificada;
+}
+
+poner en el main 
+// Ejemplo de uso
+System.out.println("7. MODIFICANDO TAREA");
+gestor.modificarTarea("T004", "Respaldar archivos críticos", 2); // Cambia prioridad de 1 a 2
+
+// Verificar que se modificó
+System.out.println("T004: " + gestor.consultarEstadoTarea("T004"));

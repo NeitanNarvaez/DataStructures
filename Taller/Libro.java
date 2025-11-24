@@ -26,5 +26,7 @@ public class Libro {
             cad += v[i].toString() + "\n";
         }
         return cad;
-    }
-}
+    }}
+
+
+   

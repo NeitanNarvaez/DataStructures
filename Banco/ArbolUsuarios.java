@@ -1,4 +1,4 @@
-package Bancoprueba;
+package Banco;
 
 /*
  * Árbol binario simple para representar una jerarquía real de roles.
@@ -9,7 +9,6 @@ package Bancoprueba;
  * 3 = Supervisor
  * 4 = Cajero
  * 5 = Usuario (mínima autoridad)
- * verfica permisos según jerarquía, ej: 1 puede hacer todo, 3 no puede eliminar cuentas
  */
 
 public class ArbolUsuarios {
@@ -18,8 +17,8 @@ public class ArbolUsuarios {
         Nodo izquierda;
         Nodo derecha;
         Nodo padre;
-        int llave;       // nivel jerárquico
-        Object contenido; // nombre del rol
+        int llave;      // nivel jerárquico
+        Object contenido;  // rol
 
         public Nodo(int llave) {
             this.llave = llave;
@@ -36,8 +35,7 @@ public class ArbolUsuarios {
         raiz = null;
     }
 
-    // Insertar un rol en el árbol (binario de búsqueda por llave)
-    // el orden va de menor a la izquierda, mayor a la derecha
+    // Insertar nodo según un árbol binario normal
     public void insertar(int llave, Object rol) {
         Nodo nuevo = new Nodo(llave);
         nuevo.contenido = rol;
@@ -51,12 +49,9 @@ public class ArbolUsuarios {
 
         while (aux != null) {
             nuevo.padre = aux;
-
             if (nuevo.llave >= aux.llave) {
-                if (aux.derecha == null) break;
                 aux = aux.derecha;
             } else {
-                if (aux.izquierda == null) break;
                 aux = aux.izquierda;
             }
         }
@@ -68,46 +63,21 @@ public class ArbolUsuarios {
         }
     }
 
-    // Buscar rol por llave
-    public String buscarRol(int llave) {
-        Nodo aux = raiz;
-
-        while (aux != null) {
-            if (aux.llave == llave) {
-                return aux.contenido.toString();
-            }
-            if (llave < aux.llave) {
-                aux = aux.izquierda;
-            } else {
-                aux = aux.derecha;
-            }
-        }
-        return null;
-    }
-
-    // Verificar autoridad:
-    // Si el nivel del usuario es menor o igual, puede realizar la acción
-    public boolean tieneAutoridad(int nivelUsuario, int nivelMinimo) {
-        return nivelUsuario <= nivelMinimo;
-    }
-
-    // Recorrido por medio de in order para mostrar el árbol
-    //imprime izquierda, raiz, derecha
-    private void recorrer(Nodo n) {
+    // Recorrido IN-ORDER
+    public void recorrer(Nodo n) {
         if (n != null) {
             recorrer(n.izquierda);
-            System.out.println("Rol: " + n.contenido + " (Jerarquia: " + n.llave + ")");
+            System.out.println("Rol: " + n.contenido + " (Jerarquía: " + n.llave + ")");
             recorrer(n.derecha);
         }
     }
 
-    // Mostrar árbol y su jerarquia
     public void mostrarArbol() {
-        System.out.println(" ARBOL DE JERARQUIA DE ROLES");
+        System.out.println("\n------ ÁRBOL DE JERARQUÍA DE ROLES ------");
         if (raiz == null) {
-            System.out.println("arbol vacio.");
+            System.out.println("Árbol vacío.");
         } else {
             recorrer(raiz);
         }
     }
-}
+}               

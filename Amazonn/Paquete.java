@@ -13,3 +13,4 @@ class Paquete {
         return "Destinatario: " + destinatario + ", Fecha: " + fechaIngreso;
     }
 }
+
